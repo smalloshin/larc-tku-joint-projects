@@ -1,0 +1,100 @@
+import pandas as pd
+import numpy as np
+from sklearn import mixture
+import random
+import time
+from datetime import datetime
+
+# decide how many gaussian to fit data
+def gmm_selection(X):
+    lowest_bic = np.infty
+    bic = []
+    n_components_range = range(1, 7)
+
+    cv_types = ['spherical', 'tied', 'diag', 'full']
+    for cv_type in cv_types:
+        for n_components in n_components_range:
+            # Fit a Gaussian mixture with EM
+            gmm = mixture.GaussianMixture(n_components=n_components)
+            gmm.fit(X)
+            bic.append(gmm.bic(X))
+            if bic[-1] < lowest_bic:
+                lowest_bic = bic[-1]
+                best_gmm = gmm
+                best_cvtype = cv_type
+    print "[GMM] Best CV type:",best_cvtype
+    return best_gmm, lowest_bic
+
+if __name__=="__main__":
+    # load the 
+    df = pd.read_csv('ezlink-transaction.csv',dtype={"card_id":"category","ori_id":"category","dest_id":"category"})
+
+    # print the statistics
+    print df.describe()
+
+    # print ori station vs frequency
+    print df.ori_id.value_counts()
+
+    # print dest station vs frequency
+    print df.dest_id.value_counts()
+
+    df = df.head()
+    # concate o-d
+    df['od']=df[['ori_id','dest_id']].apply(lambda x: '_'.join(x), axis=1)
+    df['entry_dt']=df[['entry_date','entry_time']].apply(lambda x: ' '.join(x), axis=1)
+    df['entry_ts']=df['entry_dt'].apply(lambda x: time.mktime((datetime.strptime(x,"%Y-%m-%d %H:%M:%S")).timetuple()))
+    df['depart_ts']=df.entry_ts+df.duration
+    df['depart_date']=df['depart_ts'].apply(lambda x: str(datetime.datetime.fromtimestamp(x).year)+"-"+ str(datetime.datetime.fromtimestamp(x).month)+"-"+str(datetime.datetime.fromtimestamp(x).day))
+    df['depart_time']=df['depart_ts'].apply(lambda x:  str(datetime.datetime.fromtimestamp(x).hour)+":"+ str(datetime.datetime.fromtimestamp(x).minute)+":"+str(datetime.datetime.fromtimestamp(x).second))
+
+    print df.head()
+    exit()
+    df.to_msgpack("all.msg")
+    exit()   
+
+    df = pd.read_msgpack("all.msg")
+
+    # groupsize=df.groupby(['od']).size()
+    # print groupsize.sort_values(ascending=False).head(10)
+
+    target_od_1="24_27"
+    #target_od_1="67_27"
+
+    target_1_df = df[df.od==target_od_1]
+    target_1_mean = target_1_df.mean()
+    target_1_std = target_1_df.std()
+    print "mean:",target_1_mean
+    print "std:",target_1_std
+
+    # remove outlier 
+    target_1_df['dmin'] = target_1_df['duration'].astype(int)
+    s = float(target_1_df['dmin'].value_counts().sum())
+    target_1_counts =  target_1_df['dmin'].value_counts().values/s
+    print "Targeted Dataframe Shape:",target_1_df.shape
+
+    threshold = 0.01
+    valid_minutes = []
+
+    i = -1
+    for x in target_1_counts:
+         if x>=threshold:
+             i=i+1
+         else:
+             break
+
+    valid_minutes =  target_1_df['dmin'].value_counts().index[0:i] 
+    max_minutes =  max(valid_minutes)
+    min_minutes =  min(valid_minutes)
+    clean_df = target_1_df[(target_1_df.duration>=min_minutes) & (target_1_df.duration<max_minutes+1) ]
+    print "Cleaned DataFrame Shape:",clean_df.shape  
+
+    X = np.transpose(np.array([(clean_df.duration).as_matrix()]))
+    
+
+    best_gmm,_ = gmm_selection(X)
+    print "=== Derived GMM ==="
+
+    for i,(mean,cov) in enumerate(zip(best_gmm.means_,best_gmm.covariances_)):
+        print "model #"+str(i)+":"
+        print "mean:",mean," cov:",cov
+   
