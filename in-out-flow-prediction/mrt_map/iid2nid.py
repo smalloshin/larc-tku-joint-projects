@@ -12,13 +12,18 @@ def iid2nid(nodefile="nodes_mrt_nolrt.txt"):
         nid = iid_list[0]
         n_iid = int(iid_list[6])
 
-        print "**********",iid_list[2],"**********"
-        #iid start from the 8th column
-        print n_iid
-        for i in range(n_iid):
-            print i,iid_list[8+i]
-            iid_dict[iid_list[8+i]]=n_iid
+        if n_iid==0:
+            print "[Warning] "+iid_list[2]+"has 0 internal id"
+            continue
 
+        for i in range(n_iid):
+            iid_dict[iid_list[8+i]]=n_iid
+    
+    print "[Info] Save iid2nid_dict.pkl......"
+    print "[Info] iid2nid_dict: internal_id-->node_id"
+    pickle.dump(iid_dict,open('iid2nid_dict.pkl','w'))
+    print "Done!"
+        
 
 if __name__=="__main__":
     iid2nid()
