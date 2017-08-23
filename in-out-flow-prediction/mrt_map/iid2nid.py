@@ -1,4 +1,4 @@
-import pickle
+import cPickle as pickle
 
 
 def iid2nid(nodefile="nodes_mrt_nolrt.txt"):
@@ -17,8 +17,7 @@ def iid2nid(nodefile="nodes_mrt_nolrt.txt"):
             continue
 
         for i in range(n_iid):
-            iid_dict[iid_list[8+i]]=n_iid
-    
+            iid_dict[iid_list[8+i]]=nid
     print "[Info] Save iid2nid_dict.pkl......"
     print "[Info] iid2nid_dict: internal_id-->node_id"
     pickle.dump(iid_dict,open('iid2nid_dict.pkl','w'))
