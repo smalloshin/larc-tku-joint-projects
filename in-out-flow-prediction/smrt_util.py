@@ -43,11 +43,8 @@ def preprocessing(tx_filename,msg_filename):
 
     print "   - 2.1. transform internal id to node id"
     iid_dict = Pickle.load(open("mrt_map/iid2nid_dict.pkl","r"))
-    """
     df['ori_id']=df['ori_id'].apply(lambda x: iid_dict[x])
     df['dest_id']=df['dest_id'].apply(lambda x: iid_dict[x])
-    """
-
     print "   --> Done!", time.time()-prev_time
     ttt = time.time()
     print "   - 2.2. Concate o and d"
@@ -70,7 +67,21 @@ def preprocessing(tx_filename,msg_filename):
     df['depart_ts']=df.entry_ts+df.duration*60
     df['depart_date']=df['depart_ts'].apply(lambda x: datetime.fromtimestamp(x).strftime("%Y-%m-%d"))
     df['depart_time']=df['depart_ts'].apply(lambda x: datetime.fromtimestamp(x).strftime("%H:%M:%S"))
+    df['h']=df['entry_time'].apply(lambda x: x.split(":")[0]).astype(int)
+    df['m']=df['entry_time'].apply(lambda x: x.split(":")[1]).astype(int)
+    df['s']=df['entry_time'].apply(lambda x: x.split(":")[2]).astype(int)
+    df['entry_ticks']=3600*df['h']+60*df['m']+df['s']
+
+    df['h']=df['depart_time'].apply(lambda x: x.split(":")[0]).astype(int)
+    df['m']=df['depart_time'].apply(lambda x: x.split(":")[1]).astype(int)
+    df['s']=df['depart_time'].apply(lambda x: x.split(":")[2]).astype(int)
+    df['depart_ticks']=3600*df['h']+60*df['m']+df['s']
+    
     df.drop('entry_dt',axis=1,inplace=True)
+    df.drop('h',axis=1,inplace=True)
+    df.drop('m',axis=1,inplace=True)
+    df.drop('s',axis=1,inplace=True)
+
     print "   --> ", time.time()-tt
     print "Done!", time.time()-prev_time
 
@@ -103,6 +114,7 @@ def get_df_by_date(df,date_start,date_end,mode='entry'):
 # format: 12:23 (second will be ignore)
 def get_df_by_time(df,time_start, time_end,mode="entry"):
     ttt = time.time()
+    """
     if mode=='entry':
         df['h']=df['entry_time'].apply(lambda x: x.split(":")[0]).astype(int)
         df['m']=df['entry_time'].apply(lambda x: x.split(":")[1]).astype(int)
@@ -113,15 +125,13 @@ def get_df_by_time(df,time_start, time_end,mode="entry"):
         print "[Error] Mode is error. Should be one of 'entry' or 'depart'"
         exit()
     df['ticks']=df['h']*3600+df['m']*60
-
+    """
     hx,mx,sx=time_start.split(":")
     hy,my,sy=time_end.split(":")
     ot = int(hx)*3600+int(mx)*60+int(sx)
     et = int(hy)*3600+int(my)*60+int(sy)
-    df = df[(df.ticks>=ot) & (df.ticks<=et)].copy()
-    df.drop('ticks',axis=1,inplace=True)
-    df.drop('h',axis=1,inplace=True)
-    df.drop('m',axis=1,inplace=True)
+
+    df = df[(df[mode+"_ticks"]>=ot) & (df[mode+"_ticks"]<=et)].copy()
     return df
 
 def main():
