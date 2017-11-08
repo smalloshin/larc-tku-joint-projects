@@ -32,19 +32,16 @@ def get_network_graph(node_file,edge_file):
 
     for o in g.nodes():
         for d in g.nodes():
-            o = "79"
-            d = "67"
-            key = o +"_" +d
             # Compute top-k shortest paths for od
-            cost_list, path_list = k_shortest_paths(g,o,d,k=5)            
+            cost_list, path_list = k_shortest_paths(g,o,d,k=10)            
             ksp_lists = []
+            key = o + "_" + d
             for i in range(len(path_list)):
                 edges_dict = get_edge_weights(g,path_list[i])
-                ksp_lists.append([cost_list[i],path_list[i],edges_dict])
-            od_ksp_dict[key]=ksp_lists
-            import pprint 
-            pprint.pprint(ksp_lists)
-            exit()
+                #ksp_lists.append([cost_list[i],path_list[i],edges_dict])
+                if key not in od_ksp_dict:
+                    od_ksp_dict[key]=dict()
+                od_ksp_dict[key][i]=[cost_list[i],key+"_"+str(i),path_list[i],edges_dict]
 
             """        
             # Compute 
